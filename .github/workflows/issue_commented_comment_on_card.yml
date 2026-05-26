@@ -1,0 +1,168 @@
+name: Sync issue comments to Trello card
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: read
+
+concurrency:
+  group: trello-issue-comment-${{ github.event.issue.id }}
+  cancel-in-progress: false
+
+jobs:
+  sync_issue_comment_to_trello:
+    # roda só para issues normais e ignora comentários do bot
+    if: ${{ github.event.issue.pull_request == null && github.event.comment.user.login != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    environment: dev
+    name: Sync Issue Comment to Trello
+
+    steps:
+      - name: Post GitHub comment to related Trello card
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_API_TOKEN: ${{ secrets.TRELLO_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          required = [
+              "GH_TOKEN",
+              "GITHUB_API_URL",
+              "GITHUB_REPOSITORY",
+              "ISSUE_NUMBER",
+              "ISSUE_URL",
+              "COMMENT_BODY",
+              "COMMENT_URL",
+              "COMMENT_AUTHOR",
+              "TRELLO_API_KEY",
+              "TRELLO_API_TOKEN",
+          ]
+          missing = [k for k in required if not os.environ.get(k)]
+          if missing:
+              raise SystemExit(f"Missing required env/secrets: {', '.join(missing)}")
+
+          issue_number = os.environ["ISSUE_NUMBER"]
+          issue_url = os.environ["ISSUE_URL"]
+          comment_body = os.environ["COMMENT_BODY"].strip()
+          comment_url = os.environ["COMMENT_URL"]
+          comment_author = os.environ["COMMENT_AUTHOR"]
+
+          def http_json(url, method="GET", data=None, headers=None):
+              req = urllib.request.Request(
+                  url,
+                  data=data,
+                  method=method,
+                  headers=headers or {},
+              )
+
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      raw = resp.read().decode("utf-8")
+                      if not raw:
+                          return None
+                      try:
+                          return json.loads(raw)
+                      except json.JSONDecodeError:
+                          return raw
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode("utf-8", errors="ignore")
+                  raise SystemExit(f"HTTP {e.code} error on {method} {url}\n{detail}")
+
+          def trello_request(method, path, params=None):
+              query = {
+                  "key": os.environ["TRELLO_API_KEY"],
+                  "token": os.environ["TRELLO_API_TOKEN"],
+              }
+              if params:
+                  query.update(params)
+
+              url = f"https://api.trello.com/1{path}?{urllib.parse.urlencode(query)}"
+              return http_json(
+                  url,
+                  method=method,
+                  headers={"Accept": "application/json"},
+              )
+
+          def github_request(method, path):
+              url = f"{os.environ['GITHUB_API_URL']}/repos/{os.environ['GITHUB_REPOSITORY']}{path}"
+              return http_json(
+                  url,
+                  method=method,
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  },
+              )
+
+          def extract_trello_card_ref_from_issue_comments():
+              page = 1
+              comments = []
+
+              while True:
+                  batch = github_request(
+                      "GET",
+                      f"/issues/{issue_number}/comments?per_page=100&page={page}"
+                  ) or []
+
+                  if not batch:
+                      break
+
+                  comments.extend(batch)
+
+                  if len(batch) < 100:
+                      break
+
+                  page += 1
+
+              for comment in reversed(comments):
+                  body = comment.get("body") or ""
+                  match = re.search(r"https://trello\.com/c/([A-Za-z0-9]+)", body)
+                  if match:
+                      return match.group(1)
+
+              return None
+
+          card_ref = extract_trello_card_ref_from_issue_comments()
+
+          if not card_ref:
+              raise SystemExit(
+                  "Could not find the related Trello card from issue comments. "
+                  "Make sure the card creation workflow posted the Trello card URL on the issue."
+              )
+
+          trello_comment = (
+              f"Comentário do GitHub por @{comment_author} na issue #{issue_number}:\n"
+              f"{comment_url}\n\n"
+              f"{comment_body}"
+          )
+
+          trello_request(
+              "POST",
+              f"/cards/{card_ref}/actions/comments",
+              {
+                  "text": trello_comment,
+              },
+          )
+
+          print(f"Comment synced to Trello card {card_ref}")
+          PY

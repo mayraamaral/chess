@@ -1,0 +1,275 @@
+name: Sync issue labels to Trello card
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+
+permissions:
+  issues: read
+
+concurrency:
+  group: trello-issue-labels-${{ github.event.issue.id }}
+  cancel-in-progress: true
+
+jobs:
+  sync_issue_labels_to_trello:
+    runs-on: ubuntu-latest
+    environment: dev
+    name: Sync issue labels to Trello
+
+    steps:
+      - name: Sync issue label with Trello card
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_ACTION: ${{ github.event.action }}
+          ISSUE_LABEL_NAME: ${{ github.event.label.name }}
+
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_API_TOKEN: ${{ secrets.TRELLO_API_TOKEN }}
+          TRELLO_LIST_ID: ${{ secrets.TRELLO_LIST_ID }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          required = [
+              "GH_TOKEN",
+              "GITHUB_API_URL",
+              "GITHUB_REPOSITORY",
+              "ISSUE_NUMBER",
+              "ISSUE_URL",
+              "ISSUE_ACTION",
+              "ISSUE_LABEL_NAME",
+              "TRELLO_API_KEY",
+              "TRELLO_API_TOKEN",
+              "TRELLO_LIST_ID",
+          ]
+          missing = [k for k in required if not os.environ.get(k)]
+          if missing:
+              raise SystemExit(f"Missing required env/secrets: {', '.join(missing)}")
+
+          issue_number = os.environ["ISSUE_NUMBER"]
+          issue_url = os.environ["ISSUE_URL"]
+          issue_action = os.environ["ISSUE_ACTION"]
+          issue_label_name = os.environ["ISSUE_LABEL_NAME"]
+
+          # Só vamos sincronizar estas labels
+          MANAGED_LABELS = {
+              "back-end": "blue",
+              "front-end": "pink",
+              "documentation": "green",
+              "enhancement": "orange"
+              
+          }
+
+          def normalize_label_name(name):
+              return re.sub(r"\s+", " ", (name or "").strip()).lower()
+
+          normalized_issue_label = normalize_label_name(issue_label_name)
+
+          if normalized_issue_label not in MANAGED_LABELS:
+              print(f"Issue label '{issue_label_name}' is not managed. Nothing to do.")
+              raise SystemExit(0)
+
+          def http_json(url, method="GET", data=None, headers=None):
+              req = urllib.request.Request(
+                  url,
+                  data=data,
+                  method=method,
+                  headers=headers or {},
+              )
+
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      raw = resp.read().decode("utf-8")
+                      if not raw:
+                          return None
+                      try:
+                          return json.loads(raw)
+                      except json.JSONDecodeError:
+                          return raw
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode("utf-8", errors="ignore")
+                  raise SystemExit(f"HTTP {e.code} error on {method} {url}\n{detail}")
+
+          def trello_request(method, path, params=None):
+              query = {
+                  "key": os.environ["TRELLO_API_KEY"],
+                  "token": os.environ["TRELLO_API_TOKEN"],
+              }
+              if params:
+                  query.update(params)
+
+              url = f"https://api.trello.com/1{path}?{urllib.parse.urlencode(query)}"
+              return http_json(
+                  url,
+                  method=method,
+                  headers={"Accept": "application/json"},
+              )
+
+          def github_request(method, path, payload=None):
+              data = None
+              if payload is not None:
+                  data = json.dumps(payload).encode("utf-8")
+
+              url = f"{os.environ['GITHUB_API_URL']}/repos/{os.environ['GITHUB_REPOSITORY']}{path}"
+              return http_json(
+                  url,
+                  method=method,
+                  data=data,
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "Content-Type": "application/json",
+                  },
+              )
+
+          def extract_trello_card_ref_from_issue_comments():
+              page = 1
+              comments = []
+
+              while True:
+                  batch = github_request(
+                      "GET",
+                      f"/issues/{issue_number}/comments?per_page=100&page={page}"
+                  ) or []
+
+                  if not batch:
+                      break
+
+                  comments.extend(batch)
+
+                  if len(batch) < 100:
+                      break
+
+                  page += 1
+
+              for comment in reversed(comments):
+                  body = comment.get("body") or ""
+                  match = re.search(r"https://trello\.com/c/([A-Za-z0-9]+)", body)
+                  if match:
+                      return match.group(1)
+
+              return None
+
+          def fallback_find_card_in_backlog_list():
+              cards = trello_request(
+                  "GET",
+                  f"/lists/{os.environ['TRELLO_LIST_ID']}/cards",
+                  {"fields": "id,name,desc,url,shortLink"},
+              ) or []
+
+              expected_prefix = f"#{issue_number} - "
+
+              for card in cards:
+                  name = card.get("name") or ""
+                  desc = card.get("desc") or ""
+                  if name.startswith(expected_prefix) or issue_url in desc:
+                      return card["id"]
+
+              return None
+
+          def get_card(card_ref):
+              return trello_request(
+                  "GET",
+                  f"/cards/{card_ref}",
+                  {"fields": "id,idBoard,idLabels,name,url"},
+              )
+
+          def get_board_labels(board_id):
+              return trello_request(
+                  "GET",
+                  f"/boards/{board_id}/labels",
+                  {"fields": "id,name,color", "limit": "1000"},
+              ) or []
+
+          def find_board_label_by_name(board_id, label_name):
+              normalized_target = normalize_label_name(label_name)
+
+              for label in get_board_labels(board_id):
+                  if normalize_label_name(label.get("name")) == normalized_target:
+                      return label
+
+              return None
+
+          def create_board_label(board_id, label_name, color):
+              return trello_request(
+                  "POST",
+                  f"/boards/{board_id}/labels",
+                  {
+                      "name": label_name,
+                      "color": color,
+                  },
+              )
+
+          def add_label_to_card(card_id, label_id):
+              trello_request(
+                  "POST",
+                  f"/cards/{card_id}/idLabels",
+                  {"value": label_id},
+              )
+
+          def remove_label_from_card(card_id, label_id):
+              trello_request(
+                  "DELETE",
+                  f"/cards/{card_id}/idLabels/{label_id}",
+              )
+
+          card_ref = extract_trello_card_ref_from_issue_comments()
+
+          if not card_ref:
+              card_ref = fallback_find_card_in_backlog_list()
+
+          if not card_ref:
+              raise SystemExit(
+                  "Could not find the related Trello card for this issue."
+              )
+
+          card = get_card(card_ref)
+          card_id = card["id"]
+          board_id = card["idBoard"]
+          card_label_ids = set(card.get("idLabels") or [])
+
+          trello_label = find_board_label_by_name(board_id, issue_label_name)
+
+          if issue_action == "labeled":
+              if not trello_label:
+                  trello_label = create_board_label(
+                      board_id,
+                      issue_label_name,
+                      MANAGED_LABELS[normalized_issue_label],
+                  )
+                  print(f"Created Trello label '{issue_label_name}' on board.")
+
+              if trello_label["id"] in card_label_ids:
+                  print(f"Trello label '{issue_label_name}' is already on the card.")
+                  raise SystemExit(0)
+
+              add_label_to_card(card_id, trello_label["id"])
+              print(f"Added Trello label '{issue_label_name}' to the card.")
+
+          elif issue_action == "unlabeled":
+              if not trello_label:
+                  print(f"Trello label '{issue_label_name}' does not exist on the board. Nothing to remove.")
+                  raise SystemExit(0)
+
+              if trello_label["id"] not in card_label_ids:
+                  print(f"Trello label '{issue_label_name}' is not on the card. Nothing to remove.")
+                  raise SystemExit(0)
+
+              remove_label_from_card(card_id, trello_label["id"])
+              print(f"Removed Trello label '{issue_label_name}' from the card.")
+
+          else:
+              print(f"Unsupported issue action: {issue_action}")
+          PY
