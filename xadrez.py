@@ -33,6 +33,9 @@ PECAS = {
 
 VAZIO = "."
 
+COLUNAS_VALIDAS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+LINHAS_VALIDAS = ['1', '2', '3', '4', '5', '6', '7', '8']
+
 # ==========================================
 # 2. Estruturas de Dados (Tabuleiro, Peças)
 # ==========================================
@@ -99,11 +102,28 @@ def obter_tipo_peca(peca):
 # ==========================================
 
 def imprimir_tabuleiro(tabuleiro):
-    print("  a b c d e f g h")
-    numero_linha = 8
-    for linha in tabuleiro:
+    print("  " + " ".join(COLUNAS_VALIDAS))
+    for i, linha in enumerate(tabuleiro):
+        numero_linha = LINHAS_VALIDAS[7 - i]
         print(f"{numero_linha} " + " ".join(linha))
-        numero_linha -= 1
+
+def coordenada_para_indice(coordenada):
+    if not isinstance(coordenada, str) or len(coordenada) != 2:
+        return None
+    
+    coordenada = coordenada.lower()
+    coluna_str = coordenada[0]
+    linha_str = coordenada[1]
+    
+    # Se o que foi digitado não estiver nas listas, é inválido
+    if coluna_str not in COLUNAS_VALIDAS or linha_str not in LINHAS_VALIDAS:
+        return None
+        
+    # O index() nos diz a posição da letra na lista (a=0, b=1, etc)
+    coluna = COLUNAS_VALIDAS.index(coluna_str)
+    linha = 7 - LINHAS_VALIDAS.index(linha_str)
+    
+    return linha, coluna
 # ==========================================
 # 5. Função Principal
 # ==========================================
@@ -121,6 +141,13 @@ def main():
     print("\nTabuleiro Inicial:")
     tabuleiro = criar_tabuleiro()
     imprimir_tabuleiro(tabuleiro)
+    
+    print("\nTestes de conversão de coordenadas:")
+    print("e2 ->", coordenada_para_indice("e2"))
+    print("a1 ->", coordenada_para_indice("a1"))
+    print("h8 ->", coordenada_para_indice("h8"))
+    print("z9 (inválido) ->", coordenada_para_indice("z9"))
+    print("E2 (maiúscula) ->", coordenada_para_indice("E2"))
     
     # O loop principal do jogo será implementado aqui
 
