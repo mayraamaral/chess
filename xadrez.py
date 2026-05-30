@@ -1,7 +1,7 @@
 """
 Disciplina: Programação de Computadores
 Professor: Leonardo Angelo Virginio De Souto
-Integrantes: Pietro Toledo, Mayra Amaral, Rodrigo Gadelha, Marlon Andrade
+Integrantes: Mayra Amaral, Marlon Andrade, Pietro Toledo e Rodrigo Gadelha
 Tema: Jogo de Xadrez em Python (Terminal)
 Descrição do Jogo:
 Um jogo de xadrez completo desenvolvido em Python puro, sem bibliotecas externas.
