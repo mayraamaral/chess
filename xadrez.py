@@ -12,7 +12,7 @@ O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 # 1. Constantes e Configurações Iniciais
 # ==========================================
 
-import _frozen_importlib_external
+
 PECAS = {
     "brancas": {
         "rei": "♔",
@@ -98,6 +98,27 @@ def obter_tipo_peca(peca):
             return tipo
     return None
 
+def peca_pertence_ao_turno(peca, turno_atual):
+    # Verifica se a peça pertence ao jogador do turno atual
+    if peca == VAZIO or not peca:
+        return False
+    
+    cor_peca = obter_cor_peca(peca)
+    
+    if turno_atual == "branco":
+        return cor_peca == "branco"
+    elif turno_atual == "preto":
+        return cor_peca == "preto"
+    
+    return False
+
+def alternar_turno(turno_atual):
+    # Alterna o turno entre branco e preto
+    if turno_atual == "branco":
+        return "preto"
+    else:
+        return "branco"
+
 # ==========================================
 # 4. Funções de Interface (Impressão no Terminal)
 # ==========================================
@@ -159,37 +180,59 @@ def ler_jogada():
 # ==========================================
 def main():
     print("Iniciando o Jogo de Xadrez...")
-    
     print("Peças Brancas:", " ".join(PECAS["brancas"].values()))
     print("Peças Pretas: ", " ".join(PECAS["pretas"].values()))
     
-    # Testando as funções auxiliares
-    print("Cor de ♔:", obter_cor_peca("♔"))
-    print("Tipo de ♟:", obter_tipo_peca("♟"))
-    print("Cor do Vazio:", obter_cor_peca(VAZIO))
-    
-    print("\nTabuleiro Inicial:")
     tabuleiro = criar_tabuleiro()
+    turno_atual = "branco"  # Brancas começam
+    
+    print("\n" + "="*40)
+    print("Tabuleiro Inicial:")
+    print("="*40)
     imprimir_tabuleiro(tabuleiro)
     
-    print("\nTestes de conversão de coordenadas:")
-    print("e2 ->", coordenada_para_indice("e2"))
-    print("a1 ->", coordenada_para_indice("a1"))
-    print("h8 ->", coordenada_para_indice("h8"))
-    print("z9 (inválido) ->", coordenada_para_indice("z9"))
-    print("E2 (maiúscula) ->", coordenada_para_indice("E2"))
-    
-    print("\nTeste de Leitura de Jogadas:")
-    jogada = ler_jogada()
-    if jogada == "sair":
-        print("Saindo...")
-    else:
-        origem, destino = jogada
-        print(f"Jogada registrada: Origem {origem} -> Destino {destino}")
+    # Loop principal do jogo
+    while True:
+        print("\n" + "-"*40)
         
-    # O loop principal do jogo será implementado aqui
-
-    ler_jogada()
+        # Exibir turno atual
+        cor_turno = "BRANCAS" if turno_atual == "branco" else "PRETAS"
+        print(f"Turno: {cor_turno}")
+        print("-"*40)
+        
+        # Ler jogada do jogador
+        jogada = ler_jogada()
+        
+        if jogada == "sair":
+            print("Encerrando o jogo...")
+            break
+        
+        origem, destino = jogada
+        indice_origem = coordenada_para_indice(origem)
+        indice_destino = coordenada_para_indice(destino)
+        
+        # Obter a peça na posição de origem
+        linha_orig, col_orig = indice_origem
+        peca = tabuleiro[linha_orig][col_orig]
+        
+        # Validar se a peça pertence ao turno atual
+        if not peca_pertence_ao_turno(peca, turno_atual):
+            print(f"Erro: Você não pode mover uma peça do adversário ou uma posição vazia!")
+            print("Tentando novamente no mesmo turno...\n")
+            continue
+        
+        # Se chegou aqui, a jogada é válida (no contexto de turnos)
+        # Realizar o movimento
+        linha_dest, col_dest = indice_destino
+        tabuleiro[linha_dest][col_dest] = peca
+        tabuleiro[linha_orig][col_orig] = VAZIO
+        
+        print(f"Jogada executada: {origem} -> {destino}")
+        print("Tabuleiro após o movimento:")
+        imprimir_tabuleiro(tabuleiro)
+        
+        # Alternar turno apenas após jogada válida
+        turno_atual = alternar_turno(turno_atual)
 
 
 if __name__ == "__main__":
