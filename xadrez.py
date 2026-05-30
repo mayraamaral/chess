@@ -42,6 +42,25 @@ VAZIO = "."
 # 3. Funções de Lógica do Jogo (Movimentos)
 # ==========================================
 
+def obter_cor_peca(peca):
+    if peca == VAZIO or not peca:
+        return None
+    if peca in PECAS["brancas"].values():
+        return "branco"
+    if peca in PECAS["pretas"].values():
+        return "preto"
+    return None
+
+def obter_tipo_peca(peca):
+    if peca == VAZIO or not peca:
+        return None
+    for tipo, simbolo in PECAS["brancas"].items():
+        if simbolo == peca:
+            return tipo
+    for tipo, simbolo in PECAS["pretas"].items():
+        if simbolo == peca:
+            return tipo
+    return None
 
 # ==========================================
 # 4. Funções de Interface (Impressão no Terminal)
@@ -56,6 +75,11 @@ def main():
     
     print("Peças Brancas:", " ".join(PECAS["brancas"].values()))
     print("Peças Pretas: ", " ".join(PECAS["pretas"].values()))
+    
+    # Testando as funções auxiliares
+    print("Cor de ♔:", obter_cor_peca("♔"))
+    print("Tipo de ♟:", obter_tipo_peca("♟"))
+    print("Cor do Vazio:", obter_cor_peca(VAZIO))
     
     # O loop principal do jogo será implementado aqui
 
