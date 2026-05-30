@@ -12,6 +12,26 @@ O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 # 1. Constantes e Configurações Iniciais
 # ==========================================
 
+PECAS = {
+    "brancas": {
+        "rei": "♔",
+        "dama": "♕",
+        "torre": "♖",
+        "bispo": "♗",
+        "cavalo": "♘",
+        "peao": "♙"
+    },
+    "pretas": {
+        "rei": "♚",
+        "dama": "♛",
+        "torre": "♜",
+        "bispo": "♝",
+        "cavalo": "♞",
+        "peao": "♟"
+    }
+}
+
+VAZIO = "."
 
 # ==========================================
 # 2. Estruturas de Dados (Tabuleiro, Peças)
@@ -33,6 +53,10 @@ O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 # ==========================================
 def main():
     print("Iniciando o Jogo de Xadrez...")
+    
+    print("Peças Brancas:", " ".join(PECAS["brancas"].values()))
+    print("Peças Pretas: ", " ".join(PECAS["pretas"].values()))
+    
     # O loop principal do jogo será implementado aqui
 
 
