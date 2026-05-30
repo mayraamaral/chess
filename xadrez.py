@@ -12,6 +12,7 @@ O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 # 1. Constantes e Configurações Iniciais
 # ==========================================
 
+import _frozen_importlib_external
 PECAS = {
     "brancas": {
         "rei": "♔",
@@ -124,6 +125,35 @@ def coordenada_para_indice(coordenada):
     linha = 7 - LINHAS_VALIDAS.index(linha_str)
     
     return linha, coluna
+
+def validar_formato_jogada(entrada):
+    partes = entrada.split()
+    if len(partes) != 2:
+        return False
+        
+    origem = partes[0]
+    destino = partes[1]
+    
+    # Se qualquer uma das coordenadas for None (inválida), rejeita a jogada
+    if coordenada_para_indice(origem) is None or coordenada_para_indice(destino) is None:
+        return False
+        
+    return True
+
+def ler_jogada():
+    while True:
+        # Recebe a entrada do usuário e remove espaços
+        entrada = input("Digite sua jogada (ex: e2 e4) ou 'sair': ").strip().lower()
+        
+        if entrada == "sair":
+            return "sair"
+            
+        if validar_formato_jogada(entrada):
+            origem, destino = entrada.split()
+            return origem, destino
+        else:
+            print("Erro: Formato inválido! Use coordenadas entre a1 e h8, como 'e2 e4'.")
+
 # ==========================================
 # 5. Função Principal
 # ==========================================
@@ -149,7 +179,17 @@ def main():
     print("z9 (inválido) ->", coordenada_para_indice("z9"))
     print("E2 (maiúscula) ->", coordenada_para_indice("E2"))
     
+    print("\nTeste de Leitura de Jogadas:")
+    jogada = ler_jogada()
+    if jogada == "sair":
+        print("Saindo...")
+    else:
+        origem, destino = jogada
+        print(f"Jogada registrada: Origem {origem} -> Destino {destino}")
+        
     # O loop principal do jogo será implementado aqui
+
+    ler_jogada()
 
 
 if __name__ == "__main__":
