@@ -98,6 +98,51 @@ def obter_tipo_peca(peca):
             return tipo
     return None
 
+def movimento_peao_valido(tabuleiro, origem, destino, cor):
+    # Verifica se o movimento do peão é válido de acordo com as regras básicas do xadrez
+    # Os peões brancos se movem para cima no tabuleiro (linha menor) e os pretos se movem para baixo (linha maior).
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    # O peão não pode ficar parado na mesma casa, isso não é um movimento válido.
+    if origem == destino:
+        return False
+
+    linha_diff = linha_dest - linha_orig
+    coluna_diff = col_dest - col_orig
+    destino_peca = tabuleiro[linha_dest][col_dest]
+
+    if cor == "branco":
+        # Peões brancos avançam na direção de índices de linha menores
+        direcao = -1
+        linha_inicial = 6
+        cor_oponente = "preto"
+    else:
+        # Peões pretos avançam na direção de índices de linha maiores
+        direcao = 1
+        linha_inicial = 1
+        cor_oponente = "branco"
+
+    # Movimento simples para frente: uma casa adiante em mesma coluna, somente se estiver desocupada.
+    if coluna_diff == 0 and linha_diff == direcao:
+        return destino_peca == VAZIO
+
+    # Avanço duplo: dois espaços à frente apenas da posição inicial e apenas se ambos os espaços estiverem livres.
+    if coluna_diff == 0 and linha_diff == 2 * direcao:
+        if linha_orig != linha_inicial:
+            return False
+        if destino_peca != VAZIO:
+            return False
+        linha_intermediaria = linha_orig + direcao
+        return tabuleiro[linha_intermediaria][col_orig] == VAZIO
+
+    # Captura diagonal: o peão só captura quando avança uma casa na diagonal e há peça adversária na casa de destino.
+    if abs(coluna_diff) == 1 and linha_diff == direcao:
+        return destino_peca != VAZIO and obter_cor_peca(destino_peca) == cor_oponente
+
+    # Todo outro movimento, inclusive movimento lateral, para trás ou captura para frente, é inválido.
+    return False
+
 def peca_pertence_ao_turno(peca, turno_atual):
     # Verifica se a peça pertence ao jogador do turno atual
     if peca == VAZIO or not peca:
@@ -220,8 +265,17 @@ def main():
             print(f"Erro: Você não pode mover uma peça do adversário ou uma posição vazia!")
             print("Tentando novamente no mesmo turno...\n")
             continue
-        
-        # Se chegou aqui, a jogada é válida (no contexto de turnos)
+
+        tipo_peca = obter_tipo_peca(peca)
+
+        # Validar movimento do peão quando a peça for um peão
+        if tipo_peca == "peao":
+            if not movimento_peao_valido(tabuleiro, indice_origem, indice_destino, turno_atual):
+                print("Erro: Movimento de peão inválido!")
+                print("Tentando novamente no mesmo turno...\n")
+                continue
+
+        # Se chegou aqui, a jogada é válida (no contexto atual)
         # Realizar o movimento
         linha_dest, col_dest = indice_destino
         tabuleiro[linha_dest][col_dest] = peca
