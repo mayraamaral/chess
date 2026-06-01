@@ -144,6 +144,74 @@ def movimento_peao_valido(tabuleiro, origem, destino, cor):
     return False
 
 
+def caminho_livre(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    delta_linha = linha_dest - linha_orig
+    delta_col = col_dest - col_orig
+
+    passo_linha = 0 if delta_linha == 0 else (1 if delta_linha > 0 else -1)
+    passo_col = 0 if delta_col == 0 else (1 if delta_col > 0 else -1)
+
+    # Caminho deve ser horizontal, vertical ou diagonal
+    if passo_linha != 0 and passo_col != 0 and abs(delta_linha) != abs(delta_col):
+        return False
+
+    linha = linha_orig + passo_linha
+    col = col_orig + passo_col
+    while (linha, col) != (linha_dest, col_dest):
+        if tabuleiro[linha][col] != VAZIO:
+            return False
+        linha += passo_linha
+        col += passo_col
+
+    return True
+
+
+def movimento_torre_valido(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    if origem == destino:
+        return False
+
+    if linha_orig != linha_dest and col_orig != col_dest:
+        return False
+
+    return caminho_livre(tabuleiro, origem, destino)
+
+
+def movimento_bispo_valido(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    if origem == destino:
+        return False
+
+    if abs(linha_dest - linha_orig) != abs(col_dest - col_orig):
+        return False
+
+    return caminho_livre(tabuleiro, origem, destino)
+
+
+def movimento_dama_valido(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    if origem == destino:
+        return False
+
+    horizontal = linha_orig == linha_dest
+    vertical = col_orig == col_dest
+    diagonal = abs(linha_dest - linha_orig) == abs(col_dest - col_orig)
+
+    if not (horizontal or vertical or diagonal):
+        return False
+
+    return caminho_livre(tabuleiro, origem, destino)
+
+
 def movimento_valido(tabuleiro, origem, destino, turno_atual):
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
@@ -162,6 +230,12 @@ def movimento_valido(tabuleiro, origem, destino, turno_atual):
     tipo_peca = obter_tipo_peca(peca_origem)
     if tipo_peca == "peao":
         return movimento_peao_valido(tabuleiro, origem, destino, turno_atual)
+    elif tipo_peca == "torre":
+        return movimento_torre_valido(tabuleiro, origem, destino)
+    elif tipo_peca == "bispo":
+        return movimento_bispo_valido(tabuleiro, origem, destino)
+    elif tipo_peca == "dama":
+        return movimento_dama_valido(tabuleiro, origem, destino)
 
     # Funções específicas de outras peças ainda não foram implementadas
     return False
