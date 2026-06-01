@@ -220,73 +220,126 @@ def ler_jogada():
         else:
             print("Erro: Formato inválido! Use coordenadas entre a1 e h8, como 'e2 e4'.")
 
-# ==========================================
-# 5. Função Principal
-# ==========================================
-def main():
-    print("Iniciando o Jogo de Xadrez...")
-    print("Peças Brancas:", " ".join(PECAS["brancas"].values()))
-    print("Peças Pretas: ", " ".join(PECAS["pretas"].values()))
-    
+
+def exibir_menu():
+    while True:
+        print("\n" + "="*30)
+        print("Menu Principal - Jogo de Xadrez")
+        print("="*30)
+        print("1. Iniciar partida")
+        print("2. Ver regras")
+        print("3. Ver placar salvo")
+        print("sair. Sair")
+        opcao = input("Escolha uma opção (1, 2, 3 ou sair): ").strip().lower()
+
+        if opcao == "1":
+            return "iniciar_partida"
+        elif opcao == "2":
+            return "ver_regras"
+        elif opcao == "3":
+            return "ver_placar"
+        elif opcao == "sair":
+            return "sair"
+        else:
+            print("Opção inválida! Digite 1, 2, 3 ou sair.")
+
+
+def mostrar_regras():
+    print("\nRegras do Xadrez:")
+    print("- O objetivo do jogo é dar xeque-mate no rei adversário, ou seja, atacar o rei de forma que ele não possa escapar.")
+    print("- As brancas sempre começam a partida e os jogadores alternam turnos.")
+    print("- Cada turno o jogador deve mover uma peça sua para uma casa válida, respeitando as regras de movimento.")
+    print("- Um jogador não pode fazer um movimento que deixe ou mantenha seu próprio rei em xeque.")
+    print("- As peças se movem assim:")
+    print("  • Rei: uma casa em qualquer direção.")
+    print("  • Dama: qualquer número de casas em linha reta, diagonal ou horizontal.")
+    print("  • Torre: qualquer número de casas na vertical ou horizontal.")
+    print("  • Bispo: qualquer número de casas na diagonal.")
+    print("  • Cavalo: em 'L', duas casas em uma direção e uma casa perpendicular; pode pular peças.")
+    print("  • Peão: uma casa para frente, ou duas casas na primeira jogada; captura uma casa na diagonal.")
+    print("- Quando um peão atinge a última linha do tabuleiro, ele pode ser promovido para uma dama, torre, bispo ou cavalo.")
+    print("- Xeque é quando o rei está sendo atacado por uma peça adversária.")
+    print("- Xeque-mate é quando o rei está em xeque e não há nenhum movimento legal para escapar.")
+    print("- Empate pode ocorrer em situações como falta de material para dar xeque-mate, repetição de posição ou acordo mútuo.")
+    print("- Nesta versão simplificada, você informa movimentos como 'origem destino', por exemplo: e2 e4.")
+    print("- Digite 'sair' durante a partida para retornar ao menu principal.")
+    input("\nPressione Enter para voltar ao menu...")
+
+
+def mostrar_placar():
+    print("\nPlacar salvo:")
+    print("Brancas: 0")
+    print("Pretas: 0")
+    print("Empates: 0")
+    input("\nPressione Enter para voltar ao menu...")
+
+
+def jogar_partida():
+    print("\nIniciando a partida...")
     tabuleiro = criar_tabuleiro()
     turno_atual = "branco"  # Brancas começam
-    
+
     print("\n" + "="*40)
     print("Tabuleiro Inicial:")
     print("="*40)
     imprimir_tabuleiro(tabuleiro)
-    
-    # Loop principal do jogo
+
     while True:
         print("\n" + "-"*40)
-        
-        # Exibir turno atual
         cor_turno = "BRANCAS" if turno_atual == "branco" else "PRETAS"
         print(f"Turno: {cor_turno}")
         print("-"*40)
-        
-        # Ler jogada do jogador
+
         jogada = ler_jogada()
-        
         if jogada == "sair":
-            print("Encerrando o jogo...")
+            print("Encerrando a partida e retornando ao menu...")
             break
-        
+
         origem, destino = jogada
         indice_origem = coordenada_para_indice(origem)
         indice_destino = coordenada_para_indice(destino)
-        
-        # Obter a peça na posição de origem
+
         linha_orig, col_orig = indice_origem
         peca = tabuleiro[linha_orig][col_orig]
-        
-        # Validar se a peça pertence ao turno atual
+
         if not peca_pertence_ao_turno(peca, turno_atual):
-            print(f"Erro: Você não pode mover uma peça do adversário ou uma posição vazia!")
+            print("Erro: Você não pode mover uma peça do adversário ou uma posição vazia!")
             print("Tentando novamente no mesmo turno...\n")
             continue
 
         tipo_peca = obter_tipo_peca(peca)
-
-        # Validar movimento do peão quando a peça for um peão
         if tipo_peca == "peao":
             if not movimento_peao_valido(tabuleiro, indice_origem, indice_destino, turno_atual):
                 print("Erro: Movimento de peão inválido!")
                 print("Tentando novamente no mesmo turno...\n")
                 continue
 
-        # Se chegou aqui, a jogada é válida (no contexto atual)
-        # Realizar o movimento
         linha_dest, col_dest = indice_destino
         tabuleiro[linha_dest][col_dest] = peca
         tabuleiro[linha_orig][col_orig] = VAZIO
-        
+
         print(f"Jogada executada: {origem} -> {destino}")
         print("Tabuleiro após o movimento:")
         imprimir_tabuleiro(tabuleiro)
-        
-        # Alternar turno apenas após jogada válida
+
         turno_atual = alternar_turno(turno_atual)
+
+
+def main():
+    print("Bem-vindo ao Jogo de Xadrez em Python!")
+
+    while True:
+        acao = exibir_menu()
+
+        if acao == "iniciar_partida":
+            jogar_partida()
+        elif acao == "ver_regras":
+            mostrar_regras()
+        elif acao == "ver_placar":
+            mostrar_placar()
+        elif acao == "sair":
+            print("Saindo do programa. Até a próxima!")
+            break
 
 
 if __name__ == "__main__":
