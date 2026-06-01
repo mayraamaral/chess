@@ -143,6 +143,29 @@ def movimento_peao_valido(tabuleiro, origem, destino, cor):
     # Todo outro movimento, inclusive movimento lateral, para trás ou captura para frente, é inválido.
     return False
 
+
+def movimento_valido(tabuleiro, origem, destino, turno_atual):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    peca_origem = tabuleiro[linha_orig][col_orig]
+    if peca_origem == VAZIO or not peca_origem:
+        return False
+
+    if not peca_pertence_ao_turno(peca_origem, turno_atual):
+        return False
+
+    peca_destino = tabuleiro[linha_dest][col_dest]
+    if peca_destino != VAZIO and obter_cor_peca(peca_destino) == obter_cor_peca(peca_origem):
+        return False
+
+    tipo_peca = obter_tipo_peca(peca_origem)
+    if tipo_peca == "peao":
+        return movimento_peao_valido(tabuleiro, origem, destino, turno_atual)
+
+    # Funções específicas de outras peças ainda não foram implementadas
+    return False
+
 def peca_pertence_ao_turno(peca, turno_atual):
     # Verifica se a peça pertence ao jogador do turno atual
     if peca == VAZIO or not peca:
@@ -300,20 +323,13 @@ def jogar_partida():
         indice_destino = coordenada_para_indice(destino)
 
         linha_orig, col_orig = indice_origem
-        peca = tabuleiro[linha_orig][col_orig]
 
-        if not peca_pertence_ao_turno(peca, turno_atual):
-            print("Erro: Você não pode mover uma peça do adversário ou uma posição vazia!")
+        if not movimento_valido(tabuleiro, indice_origem, indice_destino, turno_atual):
+            print("Erro: Movimento inválido! Verifique origem, destino e as regras da peça.")
             print("Tentando novamente no mesmo turno...\n")
             continue
 
-        tipo_peca = obter_tipo_peca(peca)
-        if tipo_peca == "peao":
-            if not movimento_peao_valido(tabuleiro, indice_origem, indice_destino, turno_atual):
-                print("Erro: Movimento de peão inválido!")
-                print("Tentando novamente no mesmo turno...\n")
-                continue
-
+        peca = tabuleiro[linha_orig][col_orig]
         linha_dest, col_dest = indice_destino
         tabuleiro[linha_dest][col_dest] = peca
         tabuleiro[linha_orig][col_orig] = VAZIO
