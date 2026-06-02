@@ -230,6 +230,25 @@ def movimento_cavalo_valido(tabuleiro, origem, destino):
     return False
 
 
+def movimento_rei_valido(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    # Não pode permanecer na mesma casa
+    if origem == destino:
+        return False
+
+    linha_diff = abs(linha_dest - linha_orig)
+    col_diff = abs(col_dest - col_orig)
+
+    # Rei se move no máximo uma casa em qualquer direção
+    if linha_diff <= 1 and col_diff <= 1:
+        # já filtramos o caso origem==destino acima
+        return True
+
+    return False
+
+
 def movimento_valido(tabuleiro, origem, destino, turno_atual):
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
@@ -256,6 +275,8 @@ def movimento_valido(tabuleiro, origem, destino, turno_atual):
         return movimento_dama_valido(tabuleiro, origem, destino)
     elif tipo_peca == "cavalo":
         return movimento_cavalo_valido(tabuleiro, origem, destino)
+    elif tipo_peca == "rei":
+        return movimento_rei_valido(tabuleiro, origem, destino)
 
     # Funções específicas de outras peças ainda não foram implementadas
     return False
