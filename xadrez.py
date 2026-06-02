@@ -281,6 +281,20 @@ def movimento_valido(tabuleiro, origem, destino, turno_atual):
     # Funções específicas de outras peças ainda não foram implementadas
     return False
 
+
+def executar_jogada(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    peca_origem = tabuleiro[linha_orig][col_orig]
+    peca_capturada = tabuleiro[linha_dest][col_dest]
+
+    tabuleiro[linha_dest][col_dest] = peca_origem
+    tabuleiro[linha_orig][col_orig] = VAZIO
+
+    return peca_capturada if peca_capturada != VAZIO else None
+
+
 def peca_pertence_ao_turno(peca, turno_atual):
     # Verifica se a peça pertence ao jogador do turno atual
     if peca == VAZIO or not peca:
@@ -444,10 +458,11 @@ def jogar_partida():
             print("Tentando novamente no mesmo turno...\n")
             continue
 
-        peca = tabuleiro[linha_orig][col_orig]
+        peca_capturada = executar_jogada(tabuleiro, indice_origem, indice_destino)
         linha_dest, col_dest = indice_destino
-        tabuleiro[linha_dest][col_dest] = peca
-        tabuleiro[linha_orig][col_orig] = VAZIO
+
+        if peca_capturada:
+            print(f"Peça capturada: {peca_capturada}")
 
         print(f"Jogada executada: {origem} -> {destino}")
         print("Tabuleiro após o movimento:")
