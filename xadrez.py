@@ -212,6 +212,24 @@ def movimento_dama_valido(tabuleiro, origem, destino):
     return caminho_livre(tabuleiro, origem, destino)
 
 
+def movimento_cavalo_valido(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    linha_dest, col_dest = destino
+
+    # Não pode permanecer na mesma casa
+    if origem == destino:
+        return False
+
+    linha_diff = abs(linha_dest - linha_orig)
+    col_diff = abs(col_dest - col_orig)
+
+    # Movimento em L: (2,1) ou (1,2)
+    if (linha_diff == 2 and col_diff == 1) or (linha_diff == 1 and col_diff == 2):
+        return True
+
+    return False
+
+
 def movimento_valido(tabuleiro, origem, destino, turno_atual):
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
@@ -236,6 +254,8 @@ def movimento_valido(tabuleiro, origem, destino, turno_atual):
         return movimento_bispo_valido(tabuleiro, origem, destino)
     elif tipo_peca == "dama":
         return movimento_dama_valido(tabuleiro, origem, destino)
+    elif tipo_peca == "cavalo":
+        return movimento_cavalo_valido(tabuleiro, origem, destino)
 
     # Funções específicas de outras peças ainda não foram implementadas
     return False
