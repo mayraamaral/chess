@@ -295,6 +295,40 @@ def executar_jogada(tabuleiro, origem, destino):
     return peca_capturada if peca_capturada != VAZIO else None
 
 
+def registrar_jogada(historico, turno, peca, origem, destino, capturada):
+    # Armazena informações legíveis sobre a jogada
+    tipo = obter_tipo_peca(peca) or peca
+    entrada = {
+        'turno': turno,
+        'peca': tipo,
+        'simbolo': peca,
+        'origem': origem,
+        'destino': destino,
+        'capturada': capturada
+    }
+    historico.append(entrada)
+
+
+def exibir_historico(historico):
+    if not historico:
+        print("Nenhuma jogada registrada nesta partida.")
+        return
+
+    print("\nHistórico de jogadas:")
+    for i, item in enumerate(historico, start=1):
+        turno = item['turno'].capitalize()
+        peca = item['peca'].capitalize() if isinstance(item['peca'], str) else item['peca']
+        simbolo = item['simbolo']
+        origem = item['origem']
+        destino = item['destino']
+        cap = item['capturada']
+
+        linha = f"{i}. {turno} - {peca} ({simbolo}): {origem} -> {destino}"
+        if cap:
+            linha += f" (capturou {cap})"
+        print(linha)
+
+
 def peca_pertence_ao_turno(peca, turno_atual):
     # Verifica se a peça pertence ao jogador do turno atual
     if peca == VAZIO or not peca:
@@ -429,6 +463,7 @@ def mostrar_placar():
 def jogar_partida():
     print("\nIniciando a partida...")
     tabuleiro = criar_tabuleiro()
+    historico_jogadas = []
     turno_atual = "branco"  # Brancas começam
 
     print("\n" + "="*40)
@@ -445,6 +480,7 @@ def jogar_partida():
         jogada = ler_jogada()
         if jogada == "sair":
             print("Encerrando a partida e retornando ao menu...")
+            exibir_historico(historico_jogadas)
             break
 
         origem, destino = jogada
@@ -458,7 +494,12 @@ def jogar_partida():
             print("Tentando novamente no mesmo turno...\n")
             continue
 
+        # peça que será movida (antes de executar a jogada)
+        peca = tabuleiro[linha_orig][col_orig]
+
         peca_capturada = executar_jogada(tabuleiro, indice_origem, indice_destino)
+        # registra a jogada no histórico
+        registrar_jogada(historico_jogadas, turno_atual, peca, origem, destino, peca_capturada)
         linha_dest, col_dest = indice_destino
 
         if peca_capturada:
