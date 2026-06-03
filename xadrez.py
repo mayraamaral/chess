@@ -7,7 +7,7 @@ Descrição do Jogo:
 Um jogo de xadrez completo desenvolvido em Python puro, sem bibliotecas externas.
 O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 """
-# teste
+# teste 2
 # ==========================================
 # 1. Constantes e Configurações Iniciais
 # ==========================================
