@@ -98,6 +98,23 @@ def obter_tipo_peca(peca):
             return tipo
     return None
 
+
+def encontrar_rei(tabuleiro, cor):
+    if cor == "branco":
+        rei_simbolo = PECAS["brancas"]["rei"]
+    elif cor == "preto":
+        rei_simbolo = PECAS["pretas"]["rei"]
+    else:
+        return None
+
+    for linha_idx, linha in enumerate(tabuleiro):
+        for col_idx, valor in enumerate(linha):
+            if valor == rei_simbolo:
+                return linha_idx, col_idx
+
+    return None
+
+
 def movimento_peao_valido(tabuleiro, origem, destino, cor):
     # Verifica se o movimento do peão é válido de acordo com as regras básicas do xadrez
     # Os peões brancos se movem para cima no tabuleiro (linha menor) e os pretos se movem para baixo (linha maior).
