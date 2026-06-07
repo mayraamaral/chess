@@ -115,6 +115,71 @@ def encontrar_rei(tabuleiro, cor):
     return None
 
 
+def rei_existe(tabuleiro, simbolo_rei):
+    for linha in tabuleiro:
+        if simbolo_rei in linha:
+            return True
+    return False
+
+
+def verificar_fim_de_jogo(tabuleiro):
+    branco_existe = rei_existe(tabuleiro, PECAS["brancas"]["rei"])
+    preto_existe = rei_existe(tabuleiro, PECAS["pretas"]["rei"])
+
+    if not branco_existe and not preto_existe:
+        return {'tipo': 'empate'}
+    if not branco_existe:
+        return {'tipo': 'vitoria', 'vencedor': 'preto', 'motivo': 'rei_branco_capturado'}
+    if not preto_existe:
+        return {'tipo': 'vitoria', 'vencedor': 'branco', 'motivo': 'rei_preto_capturado'}
+
+    return None
+
+
+def salvar_resultado_arquivo(resultado):
+    try:
+        with open('placar.txt', 'a', encoding='utf-8') as arquivo:
+            arquivo.write(resultado + '\n')
+    except Exception:
+        pass
+
+
+def registrar_resultado(historico, resultado):
+    historico.append({'resultado': resultado})
+
+
+def declarar_vencedor(cor_vencedora, motivo):
+    if cor_vencedora == 'branco':
+        if motivo == 'rei_preto_capturado':
+            mensagem = 'Fim de jogo! O rei preto foi capturado.\nVitória das peças brancas.'
+        else:
+            mensagem = 'Vitória das peças brancas.'
+    else:
+        if motivo == 'rei_branco_capturado':
+            mensagem = 'Fim de jogo! O rei branco foi capturado.\nVitória das peças pretas.'
+        else:
+            mensagem = 'Vitória das peças pretas.'
+
+    print(mensagem)
+    salvar_resultado_arquivo(mensagem)
+    return mensagem
+
+
+def finalizar_por_desistencia(turno_atual):
+    vencedor = 'preto' if turno_atual == 'branco' else 'branco'
+    mensagem = f'O jogador das {turno_atual} desistiu.\nVitória das peças {vencedor}.'
+    print(mensagem)
+    salvar_resultado_arquivo(mensagem)
+    return mensagem
+
+
+def finalizar_por_empate():
+    mensagem = 'A partida terminou empatada.'
+    print(mensagem)
+    salvar_resultado_arquivo(mensagem)
+    return mensagem
+
+
 def movimento_peao_valido(tabuleiro, origem, destino, cor):
     # Verifica se o movimento do peão é válido de acordo com as regras básicas do xadrez
     # Os peões brancos se movem para cima no tabuleiro (linha menor) e os pretos se movem para baixo (linha maior).
@@ -412,16 +477,16 @@ def validar_formato_jogada(entrada):
 def ler_jogada():
     while True:
         # Recebe a entrada do usuário e remove espaços
-        entrada = input("Digite sua jogada (ex: e2 e4) ou 'sair': ").strip().lower()
+        entrada = input("Digite sua jogada (ex: e2 e4), 'desistir', 'empate' ou 'sair': ").strip().lower()
         
-        if entrada == "sair":
-            return "sair"
+        if entrada in {"sair", "desistir", "empate"}:
+            return entrada
             
         if validar_formato_jogada(entrada):
             origem, destino = entrada.split()
             return origem, destino
         else:
-            print("Erro: Formato inválido! Use coordenadas entre a1 e h8, como 'e2 e4'.")
+            print("Erro: Formato inválido! Use coordenadas entre a1 e h8, como 'e2 e4', ou digite 'desistir', 'empate' ou 'sair'.")
 
 
 def exibir_menu():
@@ -500,6 +565,18 @@ def jogar_partida():
             exibir_historico(historico_jogadas)
             break
 
+        if jogada == "desistir":
+            resultado = finalizar_por_desistencia(turno_atual)
+            registrar_resultado(historico_jogadas, resultado)
+            exibir_historico(historico_jogadas)
+            break
+
+        if jogada == "empate":
+            resultado = finalizar_por_empate()
+            registrar_resultado(historico_jogadas, resultado)
+            exibir_historico(historico_jogadas)
+            break
+
         origem, destino = jogada
         indice_origem = coordenada_para_indice(origem)
         indice_destino = coordenada_para_indice(destino)
@@ -525,6 +602,16 @@ def jogar_partida():
         print(f"Jogada executada: {origem} -> {destino}")
         print("Tabuleiro após o movimento:")
         imprimir_tabuleiro(tabuleiro)
+
+        fim = verificar_fim_de_jogo(tabuleiro)
+        if fim is not None:
+            if fim['tipo'] == 'vitoria':
+                resultado = declarar_vencedor(fim['vencedor'], fim['motivo'])
+            else:
+                resultado = finalizar_por_empate()
+            registrar_resultado(historico_jogadas, resultado)
+            exibir_historico(historico_jogadas)
+            break
 
         turno_atual = alternar_turno(turno_atual)
 
