@@ -115,6 +115,14 @@ def encontrar_rei(tabuleiro, cor):
     return None
 
 
+def obter_cor_oponente(cor):
+    if cor == "branco":
+        return "preto"
+    if cor == "preto":
+        return "branco"
+    return None
+
+
 def rei_existe(tabuleiro, simbolo_rei):
     for linha in tabuleiro:
         if simbolo_rei in linha:
@@ -134,6 +142,21 @@ def verificar_fim_de_jogo(tabuleiro):
         return {'tipo': 'vitoria', 'vencedor': 'branco', 'motivo': 'rei_preto_capturado'}
 
     return None
+
+
+def obter_status_xeque(tabuleiro):
+    return {
+        'branco': esta_em_xeque(tabuleiro, 'branco'),
+        'preto': esta_em_xeque(tabuleiro, 'preto')
+    }
+
+
+def exibir_avisos_de_xeque(status_anterior, status_atual):
+    for cor in ("branco", "preto"):
+        if status_atual[cor]:
+            print(f"Xeque no rei {cor}!")
+        elif status_anterior[cor]:
+            print(f"O rei {cor} não está mais em xeque.")
 
 
 def salvar_resultado_arquivo(resultado):
@@ -327,6 +350,50 @@ def movimento_rei_valido(tabuleiro, origem, destino):
     if linha_diff <= 1 and col_diff <= 1:
         # já filtramos o caso origem==destino acima
         return True
+
+    return False
+
+
+def peca_ataca_posicao(tabuleiro, origem, destino):
+    linha_orig, col_orig = origem
+    peca_origem = tabuleiro[linha_orig][col_orig]
+
+    if peca_origem == VAZIO or not peca_origem:
+        return False
+
+    cor_peca = obter_cor_peca(peca_origem)
+    tipo_peca = obter_tipo_peca(peca_origem)
+
+    if tipo_peca == "peao":
+        return movimento_peao_valido(tabuleiro, origem, destino, cor_peca)
+    if tipo_peca == "torre":
+        return movimento_torre_valido(tabuleiro, origem, destino)
+    if tipo_peca == "bispo":
+        return movimento_bispo_valido(tabuleiro, origem, destino)
+    if tipo_peca == "dama":
+        return movimento_dama_valido(tabuleiro, origem, destino)
+    if tipo_peca == "cavalo":
+        return movimento_cavalo_valido(tabuleiro, origem, destino)
+    if tipo_peca == "rei":
+        return movimento_rei_valido(tabuleiro, origem, destino)
+
+    return False
+
+
+def esta_em_xeque(tabuleiro, cor):
+    posicao_rei = encontrar_rei(tabuleiro, cor)
+    cor_oponente = obter_cor_oponente(cor)
+
+    if posicao_rei is None or cor_oponente is None:
+        return False
+
+    for linha_idx, linha in enumerate(tabuleiro):
+        for col_idx, peca in enumerate(linha):
+            if obter_cor_peca(peca) != cor_oponente:
+                continue
+
+            if peca_ataca_posicao(tabuleiro, (linha_idx, col_idx), posicao_rei):
+                return True
 
     return False
 
@@ -547,6 +614,7 @@ def jogar_partida():
     tabuleiro = criar_tabuleiro()
     historico_jogadas = []
     turno_atual = "branco"  # Brancas começam
+    status_xeque = obter_status_xeque(tabuleiro)
 
     print("\n" + "="*40)
     print("Tabuleiro Inicial:")
@@ -612,6 +680,10 @@ def jogar_partida():
             registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
+
+        novo_status_xeque = obter_status_xeque(tabuleiro)
+        exibir_avisos_de_xeque(status_xeque, novo_status_xeque)
+        status_xeque = novo_status_xeque
 
         turno_atual = alternar_turno(turno_atual)
 
