@@ -33,6 +33,7 @@ PECAS = {
 }
 
 VAZIO = "."
+PLACAR_ARQUIVO = "placar.txt"
 
 COLUNAS_VALIDAS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 LINHAS_VALIDAS = ['1', '2', '3', '4', '5', '6', '7', '8']
@@ -159,19 +160,48 @@ def exibir_avisos_de_xeque(status_anterior, status_atual):
             print(f"O rei {cor} não está mais em xeque.")
 
 
-def salvar_resultado_arquivo(resultado):
+def formatar_vencedor_resultado(vencedor, tipo_finalizacao):
+    if vencedor == 'branco':
+        return 'brancas'
+    if vencedor == 'preto':
+        return 'pretas'
+    if tipo_finalizacao == 'Empate':
+        return 'empate'
+    return 'sem vencedor'
+
+
+def salvar_resultado(vencedor, quantidade_jogadas, tipo_finalizacao):
+    vencedor_formatado = formatar_vencedor_resultado(vencedor, tipo_finalizacao)
+    resultado = (
+        f"Vencedor: {vencedor_formatado} | "
+        f"Jogadas: {quantidade_jogadas} | "
+        f"Finalização: {tipo_finalizacao}"
+    )
+
     try:
-        with open('placar.txt', 'a', encoding='utf-8') as arquivo:
+        with open(PLACAR_ARQUIVO, 'a', encoding='utf-8') as arquivo:
             arquivo.write(resultado + '\n')
-    except Exception:
-        pass
+    except OSError as erro:
+        print(f"Aviso: não foi possível salvar o resultado em {PLACAR_ARQUIVO}: {erro}")
+
+    return resultado
+
+
+def obter_quantidade_jogadas(historico):
+    quantidade = 0
+
+    for item in historico:
+        if 'origem' in item and 'destino' in item:
+            quantidade += 1
+
+    return quantidade
 
 
 def registrar_resultado(historico, resultado):
     historico.append({'resultado': resultado})
 
 
-def declarar_vencedor(cor_vencedora, motivo):
+def declarar_vencedor(cor_vencedora, motivo, quantidade_jogadas):
     if cor_vencedora == 'branco':
         if motivo == 'rei_preto_capturado':
             mensagem = 'Fim de jogo! O rei preto foi capturado.\nVitória das peças brancas.'
@@ -184,22 +214,31 @@ def declarar_vencedor(cor_vencedora, motivo):
             mensagem = 'Vitória das peças pretas.'
 
     print(mensagem)
-    salvar_resultado_arquivo(mensagem)
+    salvar_resultado(cor_vencedora, quantidade_jogadas, 'Rei capturado')
     return mensagem
 
 
-def finalizar_por_desistencia(turno_atual):
+def finalizar_por_desistencia(turno_atual, quantidade_jogadas):
     vencedor = 'preto' if turno_atual == 'branco' else 'branco'
-    mensagem = f'O jogador das {turno_atual} desistiu.\nVitória das peças {vencedor}.'
+    desistente_formatado = 'brancas' if turno_atual == 'branco' else 'pretas'
+    vencedor_formatado = formatar_vencedor_resultado(vencedor, 'Desistência')
+    mensagem = f'O jogador das peças {desistente_formatado} desistiu.\nVitória das peças {vencedor_formatado}.'
     print(mensagem)
-    salvar_resultado_arquivo(mensagem)
+    salvar_resultado(vencedor, quantidade_jogadas, 'Desistência')
     return mensagem
 
 
-def finalizar_por_empate():
+def finalizar_por_empate(quantidade_jogadas):
     mensagem = 'A partida terminou empatada.'
     print(mensagem)
-    salvar_resultado_arquivo(mensagem)
+    salvar_resultado(None, quantidade_jogadas, 'Empate')
+    return mensagem
+
+
+def finalizar_por_saida_manual(quantidade_jogadas):
+    mensagem = 'A partida foi encerrada manualmente.'
+    print(mensagem)
+    salvar_resultado(None, quantidade_jogadas, 'Saída manual')
     return mensagem
 
 
@@ -465,6 +504,10 @@ def exibir_historico(historico):
 
     print("\nHistórico de jogadas:")
     for i, item in enumerate(historico, start=1):
+        if 'resultado' in item:
+            print(f"Resultado final: {item['resultado']}")
+            continue
+
         turno = item['turno'].capitalize()
         peca = item['peca'].capitalize() if isinstance(item['peca'], str) else item['peca']
         simbolo = item['simbolo']
@@ -603,9 +646,23 @@ def mostrar_regras():
 
 def mostrar_placar():
     print("\nPlacar salvo:")
-    print("Brancas: 0")
-    print("Pretas: 0")
-    print("Empates: 0")
+
+    try:
+        with open(PLACAR_ARQUIVO, 'r', encoding='utf-8') as arquivo:
+            linhas = [linha.strip() for linha in arquivo if linha.strip()]
+    except FileNotFoundError:
+        linhas = []
+    except OSError as erro:
+        print(f"Aviso: não foi possível ler o arquivo {PLACAR_ARQUIVO}: {erro}")
+        input("\nPressione Enter para voltar ao menu...")
+        return
+
+    if not linhas:
+        print("Nenhum resultado salvo ainda.")
+    else:
+        for linha in linhas:
+            print(linha)
+
     input("\nPressione Enter para voltar ao menu...")
 
 
@@ -629,18 +686,19 @@ def jogar_partida():
 
         jogada = ler_jogada()
         if jogada == "sair":
-            print("Encerrando a partida e retornando ao menu...")
+            resultado = finalizar_por_saida_manual(obter_quantidade_jogadas(historico_jogadas))
+            registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
 
         if jogada == "desistir":
-            resultado = finalizar_por_desistencia(turno_atual)
+            resultado = finalizar_por_desistencia(turno_atual, obter_quantidade_jogadas(historico_jogadas))
             registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
 
         if jogada == "empate":
-            resultado = finalizar_por_empate()
+            resultado = finalizar_por_empate(obter_quantidade_jogadas(historico_jogadas))
             registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
@@ -673,10 +731,13 @@ def jogar_partida():
 
         fim = verificar_fim_de_jogo(tabuleiro)
         if fim is not None:
+            quantidade_jogadas = obter_quantidade_jogadas(historico_jogadas)
+
             if fim['tipo'] == 'vitoria':
-                resultado = declarar_vencedor(fim['vencedor'], fim['motivo'])
+                resultado = declarar_vencedor(fim['vencedor'], fim['motivo'], quantidade_jogadas)
             else:
-                resultado = finalizar_por_empate()
+                resultado = finalizar_por_empate(quantidade_jogadas)
+
             registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
