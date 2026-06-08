@@ -187,6 +187,43 @@ def salvar_resultado(vencedor, quantidade_jogadas, tipo_finalizacao):
     return resultado
 
 
+def carregar_resultados():
+    try:
+        with open(PLACAR_ARQUIVO, 'r', encoding='utf-8') as arquivo:
+            linhas = [linha.strip() for linha in arquivo if linha.strip()]
+    except FileNotFoundError:
+        return []
+    except OSError as erro:
+        print(f"Aviso: não foi possível ler o arquivo {PLACAR_ARQUIVO}: {erro}")
+        return None
+
+    if not linhas:
+        return []
+
+    resultados = []
+
+    for linha in linhas:
+        partes = linha.split(' | ')
+        if len(partes) != 3:
+            resultados.append({
+                'vencedor': 'desconhecido',
+                'quantidade_jogadas': 'desconhecida',
+                'tipo_finalizacao': linha
+            })
+            continue
+
+        vencedor = partes[0].replace('Vencedor: ', '', 1)
+        quantidade_jogadas = partes[1].replace('Jogadas: ', '', 1)
+        tipo_finalizacao = partes[2].replace('Finalização: ', '', 1)
+        resultados.append({
+            'vencedor': vencedor,
+            'quantidade_jogadas': quantidade_jogadas,
+            'tipo_finalizacao': tipo_finalizacao
+        })
+
+    return resultados
+
+
 def obter_quantidade_jogadas(historico):
     quantidade = 0
 
@@ -647,21 +684,22 @@ def mostrar_regras():
 def mostrar_placar():
     print("\nPlacar salvo:")
 
-    try:
-        with open(PLACAR_ARQUIVO, 'r', encoding='utf-8') as arquivo:
-            linhas = [linha.strip() for linha in arquivo if linha.strip()]
-    except FileNotFoundError:
-        linhas = []
-    except OSError as erro:
-        print(f"Aviso: não foi possível ler o arquivo {PLACAR_ARQUIVO}: {erro}")
+    resultados = carregar_resultados()
+    if resultados is None:
         input("\nPressione Enter para voltar ao menu...")
         return
 
-    if not linhas:
+    if not resultados:
         print("Nenhum resultado salvo ainda.")
     else:
-        for linha in linhas:
-            print(linha)
+        for indice, resultado in enumerate(resultados, start=1):
+            vencedor = resultado['vencedor']
+            quantidade_jogadas = resultado['quantidade_jogadas']
+            tipo_finalizacao = resultado['tipo_finalizacao']
+
+            print(f"{indice}. Vencedor: {vencedor}")
+            print(f"   Jogadas: {quantidade_jogadas}")
+            print(f"   Finalização: {tipo_finalizacao}")
 
     input("\nPressione Enter para voltar ao menu...")
 
