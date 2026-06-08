@@ -704,7 +704,7 @@ def mostrar_placar():
     input("\nPressione Enter para voltar ao menu...")
 
 
-def jogar_partida():
+def iniciar_partida():
     print("\nIniciando a partida...")
     tabuleiro = criar_tabuleiro()
     historico_jogadas = []
@@ -785,8 +785,6 @@ def jogar_partida():
         status_xeque = novo_status_xeque
 
         turno_atual = alternar_turno(turno_atual)
-
-
 def main():
     print("Bem-vindo ao Jogo de Xadrez em Python!")
 
@@ -794,7 +792,7 @@ def main():
         acao = exibir_menu()
 
         if acao == "iniciar_partida":
-            jogar_partida()
+            iniciar_partida()
         elif acao == "ver_regras":
             mostrar_regras()
         elif acao == "ver_placar":
