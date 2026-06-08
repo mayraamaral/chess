@@ -1,12 +1,10 @@
-"""
-Disciplina: Programação de Computadores
-Professor: Leonardo Angelo Virginio De Souto
-Integrantes: Mayra Amaral, Marlon Andrade, Pietro Toledo e Rodrigo Gadelha
-Tema: Jogo de Xadrez em Python (Terminal)
-Descrição do Jogo:
-Um jogo de xadrez completo desenvolvido em Python puro, sem bibliotecas externas.
-O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
-"""
+# Disciplina: Programação de Computadores
+# Professor: Leonardo Angelo Virginio De Souto
+# Integrantes: Mayra Amaral, Marlon Andrade, Pietro Toledo e Rodrigo Gadelha
+# Tema: Jogo de Xadrez em Python (Terminal)
+# Descrição do Jogo:
+# Um jogo de xadrez completo desenvolvido em Python puro, sem bibliotecas externas.
+# O jogo será jogado via terminal, com o tabuleiro sendo impresso na tela.
 
 # ==========================================
 # 1. Constantes e Configurações Iniciais
@@ -38,42 +36,51 @@ PLACAR_ARQUIVO = "placar.txt"
 COLUNAS_VALIDAS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 LINHAS_VALIDAS = ['1', '2', '3', '4', '5', '6', '7', '8']
 
+SIMBOLO_PARA_PECA = {
+    simbolo: ("branco" if cor == "brancas" else "preto", tipo)
+    for cor, pecas_cor in PECAS.items()
+    for tipo, simbolo in pecas_cor.items()
+}
+
+LINHA_INICIAL_PRETAS = [
+    PECAS["pretas"]["torre"], PECAS["pretas"]["cavalo"], PECAS["pretas"]["bispo"],
+    PECAS["pretas"]["dama"], PECAS["pretas"]["rei"],
+    PECAS["pretas"]["bispo"], PECAS["pretas"]["cavalo"], PECAS["pretas"]["torre"]
+]
+LINHA_INICIAL_BRANCAS = [
+    PECAS["brancas"]["torre"], PECAS["brancas"]["cavalo"], PECAS["brancas"]["bispo"],
+    PECAS["brancas"]["dama"], PECAS["brancas"]["rei"],
+    PECAS["brancas"]["bispo"], PECAS["brancas"]["cavalo"], PECAS["brancas"]["torre"]
+]
+
+
+def criar_linha_vazia():
+    return [VAZIO] * 8
+
+
+def descrever_cor(cor):
+    if cor == "branco":
+        return "brancas"
+    if cor == "preto":
+        return "pretas"
+    return None
+
+
+def mover_turno(cor):
+    return "preto" if cor == "branco" else "branco"
+
 # ==========================================
 # 2. Estruturas de Dados (Tabuleiro, Peças)
 # ==========================================
 
 def criar_tabuleiro():
-    tabuleiro = []
-    
-    # Linha 0: Peças maiores pretas
-    linha_0 = [
-        PECAS["pretas"]["torre"], PECAS["pretas"]["cavalo"], PECAS["pretas"]["bispo"], 
-        PECAS["pretas"]["dama"], PECAS["pretas"]["rei"], 
-        PECAS["pretas"]["bispo"], PECAS["pretas"]["cavalo"], PECAS["pretas"]["torre"]
+    return [
+        LINHA_INICIAL_PRETAS.copy(),
+        [PECAS["pretas"]["peao"]] * 8,
+        *(criar_linha_vazia() for _ in range(4)),
+        [PECAS["brancas"]["peao"]] * 8,
+        LINHA_INICIAL_BRANCAS.copy(),
     ]
-    tabuleiro.append(linha_0)
-    
-    # Linha 1: Peões pretos
-    linha_1 = [PECAS["pretas"]["peao"]] * 8
-    tabuleiro.append(linha_1)
-    
-    # Linhas 2 a 5: Vazias
-    for _ in range(4):
-        tabuleiro.append([VAZIO] * 8)
-        
-    # Linha 6: Peões brancos
-    linha_6 = [PECAS["brancas"]["peao"]] * 8
-    tabuleiro.append(linha_6)
-    
-    # Linha 7: Peças maiores brancas
-    linha_7 = [
-        PECAS["brancas"]["torre"], PECAS["brancas"]["cavalo"], PECAS["brancas"]["bispo"], 
-        PECAS["brancas"]["dama"], PECAS["brancas"]["rei"], 
-        PECAS["brancas"]["bispo"], PECAS["brancas"]["cavalo"], PECAS["brancas"]["torre"]
-    ]
-    tabuleiro.append(linha_7)
-    
-    return tabuleiro
 
 # ==========================================
 # 3. Funções de Lógica do Jogo (Movimentos)
@@ -82,31 +89,22 @@ def criar_tabuleiro():
 def obter_cor_peca(peca):
     if peca == VAZIO or not peca:
         return None
-    if peca in PECAS["brancas"].values():
-        return "branco"
-    if peca in PECAS["pretas"].values():
-        return "preto"
-    return None
+    dados_peca = SIMBOLO_PARA_PECA.get(peca)
+    return None if dados_peca is None else dados_peca[0]
 
 def obter_tipo_peca(peca):
     if peca == VAZIO or not peca:
         return None
-    for tipo, simbolo in PECAS["brancas"].items():
-        if simbolo == peca:
-            return tipo
-    for tipo, simbolo in PECAS["pretas"].items():
-        if simbolo == peca:
-            return tipo
-    return None
+    dados_peca = SIMBOLO_PARA_PECA.get(peca)
+    return None if dados_peca is None else dados_peca[1]
 
 
 def encontrar_rei(tabuleiro, cor):
-    if cor == "branco":
-        rei_simbolo = PECAS["brancas"]["rei"]
-    elif cor == "preto":
-        rei_simbolo = PECAS["pretas"]["rei"]
-    else:
+    nome_cor = descrever_cor(cor)
+    if nome_cor is None:
         return None
+
+    rei_simbolo = PECAS[nome_cor]["rei"]
 
     for linha_idx, linha in enumerate(tabuleiro):
         for col_idx, valor in enumerate(linha):
@@ -117,11 +115,9 @@ def encontrar_rei(tabuleiro, cor):
 
 
 def obter_cor_oponente(cor):
-    if cor == "branco":
-        return "preto"
-    if cor == "preto":
-        return "branco"
-    return None
+    if cor not in {"branco", "preto"}:
+        return None
+    return mover_turno(cor)
 
 
 def rei_existe(tabuleiro, simbolo_rei):
@@ -161,10 +157,8 @@ def exibir_avisos_de_xeque(status_anterior, status_atual):
 
 
 def formatar_vencedor_resultado(vencedor, tipo_finalizacao):
-    if vencedor == 'branco':
-        return 'brancas'
-    if vencedor == 'preto':
-        return 'pretas'
+    if vencedor in {"branco", "preto"}:
+        return descrever_cor(vencedor)
     if tipo_finalizacao == 'Empate':
         return 'empate'
     return 'sem vencedor'
@@ -225,13 +219,7 @@ def carregar_resultados():
 
 
 def obter_quantidade_jogadas(historico):
-    quantidade = 0
-
-    for item in historico:
-        if 'origem' in item and 'destino' in item:
-            quantidade += 1
-
-    return quantidade
+    return sum(1 for item in historico if 'origem' in item and 'destino' in item)
 
 
 def registrar_resultado(historico, resultado):
@@ -239,16 +227,14 @@ def registrar_resultado(historico, resultado):
 
 
 def declarar_vencedor(cor_vencedora, motivo, quantidade_jogadas):
-    if cor_vencedora == 'branco':
-        if motivo == 'rei_preto_capturado':
-            mensagem = 'Fim de jogo! O rei preto foi capturado.\nVitória das peças brancas.'
-        else:
-            mensagem = 'Vitória das peças brancas.'
-    else:
-        if motivo == 'rei_branco_capturado':
-            mensagem = 'Fim de jogo! O rei branco foi capturado.\nVitória das peças pretas.'
-        else:
-            mensagem = 'Vitória das peças pretas.'
+    mensagens_por_captura = {
+        'rei_preto_capturado': 'Fim de jogo! O rei preto foi capturado.\nVitória das peças brancas.',
+        'rei_branco_capturado': 'Fim de jogo! O rei branco foi capturado.\nVitória das peças pretas.',
+    }
+    mensagem = mensagens_por_captura.get(motivo)
+
+    if mensagem is None:
+        mensagem = f"Vitória das peças {descrever_cor(cor_vencedora)}."
 
     print(mensagem)
     salvar_resultado(cor_vencedora, quantidade_jogadas, 'Rei capturado')
@@ -256,8 +242,8 @@ def declarar_vencedor(cor_vencedora, motivo, quantidade_jogadas):
 
 
 def finalizar_por_desistencia(turno_atual, quantidade_jogadas):
-    vencedor = 'preto' if turno_atual == 'branco' else 'branco'
-    desistente_formatado = 'brancas' if turno_atual == 'branco' else 'pretas'
+    vencedor = mover_turno(turno_atual)
+    desistente_formatado = descrever_cor(turno_atual)
     vencedor_formatado = formatar_vencedor_resultado(vencedor, 'Desistência')
     mensagem = f'O jogador das peças {desistente_formatado} desistiu.\nVitória das peças {vencedor_formatado}.'
     print(mensagem)
@@ -280,12 +266,9 @@ def finalizar_por_saida_manual(quantidade_jogadas):
 
 
 def movimento_peao_valido(tabuleiro, origem, destino, cor):
-    # Verifica se o movimento do peão é válido de acordo com as regras básicas do xadrez
-    # Os peões brancos se movem para cima no tabuleiro (linha menor) e os pretos se movem para baixo (linha maior).
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
 
-    # O peão não pode ficar parado na mesma casa, isso não é um movimento válido.
     if origem == destino:
         return False
 
@@ -294,21 +277,17 @@ def movimento_peao_valido(tabuleiro, origem, destino, cor):
     destino_peca = tabuleiro[linha_dest][col_dest]
 
     if cor == "branco":
-        # Peões brancos avançam na direção de índices de linha menores
         direcao = -1
         linha_inicial = 6
         cor_oponente = "preto"
     else:
-        # Peões pretos avançam na direção de índices de linha maiores
         direcao = 1
         linha_inicial = 1
         cor_oponente = "branco"
 
-    # Movimento simples para frente: uma casa adiante em mesma coluna, somente se estiver desocupada.
     if coluna_diff == 0 and linha_diff == direcao:
         return destino_peca == VAZIO
 
-    # Avanço duplo: dois espaços à frente apenas da posição inicial e apenas se ambos os espaços estiverem livres.
     if coluna_diff == 0 and linha_diff == 2 * direcao:
         if linha_orig != linha_inicial:
             return False
@@ -317,11 +296,9 @@ def movimento_peao_valido(tabuleiro, origem, destino, cor):
         linha_intermediaria = linha_orig + direcao
         return tabuleiro[linha_intermediaria][col_orig] == VAZIO
 
-    # Captura diagonal: o peão só captura quando avança uma casa na diagonal e há peça adversária na casa de destino.
     if abs(coluna_diff) == 1 and linha_diff == direcao:
         return destino_peca != VAZIO and obter_cor_peca(destino_peca) == cor_oponente
 
-    # Todo outro movimento, inclusive movimento lateral, para trás ou captura para frente, é inválido.
     return False
 
 
@@ -397,37 +374,46 @@ def movimento_cavalo_valido(tabuleiro, origem, destino):
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
 
-    # Não pode permanecer na mesma casa
     if origem == destino:
         return False
 
     linha_diff = abs(linha_dest - linha_orig)
     col_diff = abs(col_dest - col_orig)
 
-    # Movimento em L: (2,1) ou (1,2)
-    if (linha_diff == 2 and col_diff == 1) or (linha_diff == 1 and col_diff == 2):
-        return True
-
-    return False
+    return (linha_diff == 2 and col_diff == 1) or (linha_diff == 1 and col_diff == 2)
 
 
 def movimento_rei_valido(tabuleiro, origem, destino):
     linha_orig, col_orig = origem
     linha_dest, col_dest = destino
 
-    # Não pode permanecer na mesma casa
     if origem == destino:
         return False
 
     linha_diff = abs(linha_dest - linha_orig)
     col_diff = abs(col_dest - col_orig)
 
-    # Rei se move no máximo uma casa em qualquer direção
-    if linha_diff <= 1 and col_diff <= 1:
-        # já filtramos o caso origem==destino acima
-        return True
+    return linha_diff <= 1 and col_diff <= 1
 
-    return False
+
+VALIDADORES_MOVIMENTO = {
+    "torre": movimento_torre_valido,
+    "bispo": movimento_bispo_valido,
+    "dama": movimento_dama_valido,
+    "cavalo": movimento_cavalo_valido,
+    "rei": movimento_rei_valido,
+}
+
+
+def movimento_por_tipo_valido(tabuleiro, origem, destino, tipo_peca, cor=None):
+    if tipo_peca == "peao":
+        return movimento_peao_valido(tabuleiro, origem, destino, cor)
+
+    validador = VALIDADORES_MOVIMENTO.get(tipo_peca)
+    if validador is None:
+        return False
+
+    return validador(tabuleiro, origem, destino)
 
 
 def peca_ataca_posicao(tabuleiro, origem, destino):
@@ -439,21 +425,7 @@ def peca_ataca_posicao(tabuleiro, origem, destino):
 
     cor_peca = obter_cor_peca(peca_origem)
     tipo_peca = obter_tipo_peca(peca_origem)
-
-    if tipo_peca == "peao":
-        return movimento_peao_valido(tabuleiro, origem, destino, cor_peca)
-    if tipo_peca == "torre":
-        return movimento_torre_valido(tabuleiro, origem, destino)
-    if tipo_peca == "bispo":
-        return movimento_bispo_valido(tabuleiro, origem, destino)
-    if tipo_peca == "dama":
-        return movimento_dama_valido(tabuleiro, origem, destino)
-    if tipo_peca == "cavalo":
-        return movimento_cavalo_valido(tabuleiro, origem, destino)
-    if tipo_peca == "rei":
-        return movimento_rei_valido(tabuleiro, origem, destino)
-
-    return False
+    return movimento_por_tipo_valido(tabuleiro, origem, destino, tipo_peca, cor_peca)
 
 
 def esta_em_xeque(tabuleiro, cor):
@@ -490,21 +462,7 @@ def movimento_valido(tabuleiro, origem, destino, turno_atual):
         return False
 
     tipo_peca = obter_tipo_peca(peca_origem)
-    if tipo_peca == "peao":
-        return movimento_peao_valido(tabuleiro, origem, destino, turno_atual)
-    elif tipo_peca == "torre":
-        return movimento_torre_valido(tabuleiro, origem, destino)
-    elif tipo_peca == "bispo":
-        return movimento_bispo_valido(tabuleiro, origem, destino)
-    elif tipo_peca == "dama":
-        return movimento_dama_valido(tabuleiro, origem, destino)
-    elif tipo_peca == "cavalo":
-        return movimento_cavalo_valido(tabuleiro, origem, destino)
-    elif tipo_peca == "rei":
-        return movimento_rei_valido(tabuleiro, origem, destino)
-
-    # Funções específicas de outras peças ainda não foram implementadas
-    return False
+    return movimento_por_tipo_valido(tabuleiro, origem, destino, tipo_peca, turno_atual)
 
 
 def executar_jogada(tabuleiro, origem, destino):
@@ -521,7 +479,6 @@ def executar_jogada(tabuleiro, origem, destino):
 
 
 def registrar_jogada(historico, turno, peca, origem, destino, capturada):
-    # Armazena informações legíveis sobre a jogada
     tipo = obter_tipo_peca(peca) or peca
     entrada = {
         'turno': turno,
@@ -559,25 +516,12 @@ def exibir_historico(historico):
 
 
 def peca_pertence_ao_turno(peca, turno_atual):
-    # Verifica se a peça pertence ao jogador do turno atual
     if peca == VAZIO or not peca:
         return False
-    
-    cor_peca = obter_cor_peca(peca)
-    
-    if turno_atual == "branco":
-        return cor_peca == "branco"
-    elif turno_atual == "preto":
-        return cor_peca == "preto"
-    
-    return False
+    return obter_cor_peca(peca) == turno_atual
 
 def alternar_turno(turno_atual):
-    # Alterna o turno entre branco e preto
-    if turno_atual == "branco":
-        return "preto"
-    else:
-        return "branco"
+    return mover_turno(turno_atual)
 
 # ==========================================
 # 4. Funções de Interface (Impressão no Terminal)
@@ -597,14 +541,12 @@ def coordenada_para_indice(coordenada):
     coluna_str = coordenada[0]
     linha_str = coordenada[1]
     
-    # Se o que foi digitado não estiver nas listas, é inválido
     if coluna_str not in COLUNAS_VALIDAS or linha_str not in LINHAS_VALIDAS:
         return None
-        
-    # O index() nos diz a posição da letra na lista (a=0, b=1, etc)
+
     coluna = COLUNAS_VALIDAS.index(coluna_str)
     linha = 7 - LINHAS_VALIDAS.index(linha_str)
-    
+
     return linha, coluna
 
 def validar_formato_jogada(entrada):
@@ -615,20 +557,18 @@ def validar_formato_jogada(entrada):
     origem = partes[0]
     destino = partes[1]
     
-    # Se qualquer uma das coordenadas for None (inválida), rejeita a jogada
     if coordenada_para_indice(origem) is None or coordenada_para_indice(destino) is None:
         return False
-        
+
     return True
 
 def ler_jogada():
     while True:
-        # Recebe a entrada do usuário e remove espaços
         entrada = input("Digite sua jogada (ex: e2 e4), 'desistir', 'empate' ou 'sair': ").strip().lower()
-        
+
         if entrada in {"sair", "desistir", "empate"}:
             return entrada
-            
+
         if validar_formato_jogada(entrada):
             origem, destino = entrada.split()
             return origem, destino
@@ -637,6 +577,7 @@ def ler_jogada():
 
 
 def exibir_menu():
+    # Mostra o menu principal e devolve a ação escolhida.
     while True:
         print("\n" + "="*30)
         print("Menu Principal - Jogo de Xadrez")
@@ -660,6 +601,7 @@ def exibir_menu():
 
 
 def mostrar_regras():
+    # Exibe as regras resumidas desta versão do jogo.
     print("\nRegras do Xadrez:")
     print("- O objetivo do jogo é dar xeque-mate no rei adversário, ou seja, atacar o rei de forma que ele não possa escapar.")
     print("- As brancas sempre começam a partida e os jogadores alternam turnos.")
@@ -682,6 +624,7 @@ def mostrar_regras():
 
 
 def mostrar_placar():
+    # Mostra os resultados salvos no arquivo de placar.
     print("\nPlacar salvo:")
 
     resultados = carregar_resultados()
@@ -705,10 +648,11 @@ def mostrar_placar():
 
 
 def iniciar_partida():
+    # Executa o laço principal da partida até o jogo terminar.
     print("\nIniciando a partida...")
     tabuleiro = criar_tabuleiro()
     historico_jogadas = []
-    turno_atual = "branco"  # Brancas começam
+    turno_atual = "branco"
     status_xeque = obter_status_xeque(tabuleiro)
 
     print("\n" + "="*40)
@@ -723,20 +667,8 @@ def iniciar_partida():
         print("-"*40)
 
         jogada = ler_jogada()
-        if jogada == "sair":
-            resultado = finalizar_por_saida_manual(obter_quantidade_jogadas(historico_jogadas))
-            registrar_resultado(historico_jogadas, resultado)
-            exibir_historico(historico_jogadas)
-            break
-
-        if jogada == "desistir":
-            resultado = finalizar_por_desistencia(turno_atual, obter_quantidade_jogadas(historico_jogadas))
-            registrar_resultado(historico_jogadas, resultado)
-            exibir_historico(historico_jogadas)
-            break
-
-        if jogada == "empate":
-            resultado = finalizar_por_empate(obter_quantidade_jogadas(historico_jogadas))
+        resultado = processar_comando_especial(jogada, turno_atual, historico_jogadas)
+        if resultado is not None:
             registrar_resultado(historico_jogadas, resultado)
             exibir_historico(historico_jogadas)
             break
@@ -752,13 +684,10 @@ def iniciar_partida():
             print("Tentando novamente no mesmo turno...\n")
             continue
 
-        # peça que será movida (antes de executar a jogada)
         peca = tabuleiro[linha_orig][col_orig]
 
         peca_capturada = executar_jogada(tabuleiro, indice_origem, indice_destino)
-        # registra a jogada no histórico
         registrar_jogada(historico_jogadas, turno_atual, peca, origem, destino, peca_capturada)
-        linha_dest, col_dest = indice_destino
 
         if peca_capturada:
             print(f"Peça capturada: {peca_capturada}")
@@ -785,7 +714,23 @@ def iniciar_partida():
         status_xeque = novo_status_xeque
 
         turno_atual = alternar_turno(turno_atual)
+
+
+def processar_comando_especial(jogada, turno_atual, historico_jogadas):
+    # Trata os comandos de encerramento digitados durante a partida.
+    quantidade_jogadas = obter_quantidade_jogadas(historico_jogadas)
+
+    if jogada == "sair":
+        return finalizar_por_saida_manual(quantidade_jogadas)
+    if jogada == "desistir":
+        return finalizar_por_desistencia(turno_atual, quantidade_jogadas)
+    if jogada == "empate":
+        return finalizar_por_empate(quantidade_jogadas)
+    return None
+
+
 def main():
+    # Exibe o menu principal e direciona o fluxo do programa.
     print("Bem-vindo ao Jogo de Xadrez em Python!")
 
     while True:
